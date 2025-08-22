@@ -1,6 +1,6 @@
 import { Text, TouchableOpacity, View } from "react-native";
 
-export function SignUpAs() {
+export default function SignUpAs() {
   return (
     <View className="flex-1">
       <Text className="text-center text-xl font-bold text-black mb-4">

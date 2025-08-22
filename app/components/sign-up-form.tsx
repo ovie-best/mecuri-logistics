@@ -3,7 +3,7 @@ import { Apple } from "lucide-react-native";
 import React from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 
-export function SignUpForm() {
+export default function SignUpForm() {
   return (
     <View className="flex-1">
       <Text className="text-center text-xl font-bold text-black mb-4">
