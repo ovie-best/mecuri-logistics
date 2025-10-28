@@ -1,0 +1,33 @@
+import { View, Text, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
+
+export default function RequestScreen() {
+  const router = useRouter();
+
+  return (
+    <View className="flex-1 bg-gray-900 justify-center items-center p-6">
+      <View className="bg-white p-6 rounded-2xl w-full max-w-sm">
+        <Text className="text-lg font-semibold mb-3">🚚 New Delivery Request</Text>
+        <Text>Pickup: 12A Ekenwan Road</Text>
+        <Text>Drop-off: UNIBEN Main Gate</Text>
+        <Text className="font-bold mt-2 text-green-600">₦1,200</Text>
+
+        <View className="flex-row justify-between mt-5">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="bg-red-500 px-5 py-3 rounded-xl"
+          >
+            <Text className="text-white font-bold">Reject</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push("/(rider)/pickup")}
+            className="bg-green-600 px-5 py-3 rounded-xl"
+          >
+            <Text className="text-white font-bold">Accept</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}

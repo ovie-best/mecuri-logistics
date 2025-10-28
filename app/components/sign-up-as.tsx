@@ -18,7 +18,12 @@ export default function SignUpAs() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity className="bg-white rounded-full py-4 mb-4 w-60 ">
-          <Text className="text-black text-center font-bold">Customer</Text>
+          <Text
+            className="text-black text-center font-bold"
+            onPress={() => router.push("../screens/rider-map-screen")}
+          >
+            Customer
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
