@@ -1,17 +1,17 @@
-import React, { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
-  Alert,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function MerchantSignupScreen() {
@@ -98,7 +98,7 @@ export default function MerchantSignupScreen() {
   };
 
   const handleSignInPress = () => {
-    router.push("/screens/login-screen");
+    router.push("../../index");
   };
 
   const handleAppleSignup = () => {

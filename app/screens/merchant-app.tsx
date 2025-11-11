@@ -1,17 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Switch, Text, TouchableOpacity, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import { SafeAreaView } from "react-native-safe-area-context";
+import MenuScreen from "./menu-screen";
 
 export default function RideScreen() {
+  const [menuVisible, setMenuVisible] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
       <View className="flex-row justify-between items-center px-4 pt-12 pb-3 bg-white shadow-sm">
         {/* Menu icon */}
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => setMenuVisible(true)}>
           <Ionicons name="menu-outline" size={28} color="black" />
         </TouchableOpacity>
 
@@ -50,6 +53,7 @@ export default function RideScreen() {
       >
         <Ionicons name="search-outline" size={26} color="#22c55e" />
       </TouchableOpacity>
-    </View>
+      <MenuScreen visible={menuVisible} onClose={() => setMenuVisible(false)} />
+    </SafeAreaView>
   );
 }

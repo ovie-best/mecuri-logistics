@@ -56,7 +56,7 @@ export const useDeliveryStore = create<DeliveryState>((set) => ({
 }));
 
 // Mock incoming job (call this when online)
-export function mockIncomingJob() {
+export default function mockIncomingJob() {
   const store = useDeliveryStore.getState();
   if (store.online && store.status === "IDLE") {
     const mockJob: Job = {
