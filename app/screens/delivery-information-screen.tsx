@@ -1,18 +1,18 @@
-import React, { useState, useRef } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-  Modal,
-  Animated,
-  Dimensions,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -144,19 +144,19 @@ export default function DeliveryInformationScreen() {
     setLoading(true);
     try {
       // Create delivery request
-      // const response = await fetch('YOUR_API_URL/deliveries/create', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${yourAuthToken}`,
-      //   },
-      //   body: JSON.stringify({
-      //     pickupAddress,
-      //     dropoffAddress,
-      //     packageDetails,
-      //   }),
-      // });
-      // const data = await response.json();
+      const response = await fetch("YOUR_API_URL/deliveries/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          //  Authorization: `Bearer ${yourAuthToken}`,
+        },
+        body: JSON.stringify({
+          pickupAddress,
+          dropoffAddress,
+          packageDetails,
+        }),
+      });
+      const data = await response.json();
 
       await new Promise((resolve) => setTimeout(resolve, 1500));
 

@@ -199,10 +199,16 @@ export default function WelcomeScreen() {
                   <UserTypeSelector
                     title="Login as:"
                     onMerchantPress={() =>
-                      router.push("/screens/login-credentials-screen")
+                      router.push({
+                        pathname: "/screens/login-credentials-screen",
+                        params: { userType: "merchant" },
+                      })
                     }
                     onCustomerPress={() =>
-                      router.push("/screens/login-credentials-screen")
+                      router.push({
+                        pathname: "/screens/login-credentials-screen",
+                        params: { userType: "customer" },
+                      })
                     }
                   />
                   {/* <SignUpAs /> */}

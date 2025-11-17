@@ -1,491 +1,365 @@
-import type { DrawerNavigationProp } from "@react-navigation/drawer";
-import { useNavigation } from "@react-navigation/native";
-import React, { useEffect, useRef, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import {
-  Animated,
-  Dimensions,
-  FlatList,
-  ListRenderItem,
-  Modal,
+  Alert,
+  Pressable,
+  SafeAreaView,
   ScrollView,
-  StatusBar,
   Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import Icon from "react-native-vector-icons/Ionicons";
-import { useDelivery } from "../../context/delivery-context";
+import { LocationSuggestion } from "../../services/nominatimService";
+import {
+  PackageDetails,
+  PackageDetailsModal,
+} from "../components/PackageDetailsModal";
+import { PickupAddressModal } from "../components/PickupAddressModal";
+import { useLocation } from "../context/LocationContext";
 
-const { height } = Dimensions.get("window");
-
-// Types
-interface LocationData {
-  id: string;
-  name: string;
-  coords: {
-    latitude: number;
-    longitude: number;
-  };
+interface DeliveryInfoState {
+  pickupAddress: string | null;
+  pickupLatitude: number | null;
+  pickupLongitude: number | null;
+  pickupFullData?: LocationSuggestion;
+  dropOffAddress: string | null;
+  dropOffLatitude: number | null;
+  dropOffLongitude: number | null;
+  packageDetails: PackageDetails | null;
 }
 
-type RootDrawerParamList = {
-  "customer-home": undefined;
-  "delivery-info": undefined;
-  "find-merchant": undefined;
-};
+export default function DeliveryInfoScreen() {
+  const params = useLocalSearchParams<{
+    dropOffLatitude: string;
+    dropOffLongitude: string;
+    dropOffAddress: string;
+    dropOffMainText: string;
+    pickupLatitude?: string;
+    pickupLongitude?: string;
+    pickupAddress?: string;
+  }>();
 
-type NavigationProp = DrawerNavigationProp<RootDrawerParamList>;
+  const { setDeliveryInfo } = useLocation();
 
-const DeliveryInfoScreen: React.FC = () => {
-  const navigation = useNavigation<NavigationProp>();
-  const { dropOffLocation, updateDeliveryDetails, deliveryDetails } =
-    useDelivery();
-  const slideAnim = useRef(new Animated.Value(height)).current;
+  const [state, setState] = useState<DeliveryInfoState>({
+    pickupAddress: params.pickupAddress || null,
+    pickupLatitude: params.pickupLatitude
+      ? parseFloat(params.pickupLatitude)
+      : null,
+    pickupLongitude: params.pickupLongitude
+      ? parseFloat(params.pickupLongitude)
+      : null,
+    dropOffAddress: params.dropOffAddress || null,
+    dropOffLatitude: parseFloat(params.dropOffLatitude),
+    dropOffLongitude: parseFloat(params.dropOffLongitude),
+    packageDetails: null,
+  });
 
-  const [pickupAddress, setPickupAddress] = useState<string>("");
-  const [dropoffAddress, setDropoffAddress] = useState<string>(
-    dropOffLocation?.name || ""
-  );
-  const [packageDetailsComplete, setPackageDetailsComplete] =
-    useState<boolean>(false);
+  const [pickupModalVisible, setPickupModalVisible] = useState(false);
+  const [packageModalVisible, setPackageModalVisible] = useState(false);
 
-  // Modal states
-  const [showAddressModal, setShowAddressModal] = useState<boolean>(false);
-  const [showPackageModal, setShowPackageModal] = useState<boolean>(false);
-  const [addressType, setAddressType] = useState<"pickup" | "dropoff">(
-    "pickup"
-  );
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [searchResults, setSearchResults] = useState<LocationData[]>([]);
+  // Validation checks
+  const isPickupFilled = !!state.pickupAddress;
+  const isDropOffFilled = !!state.dropOffAddress;
+  const isPackageFilled = !!state.packageDetails;
+  const isAllComplete = isPickupFilled && isDropOffFilled && isPackageFilled;
 
-  // Package details states
-  const [packageType, setPackageType] = useState<string>("");
-  const [packageCategory, setPackageCategory] = useState<string>("");
-  const [itemValue, setItemValue] = useState<string>("");
-  const [showPackageTypeDropdown, setShowPackageTypeDropdown] =
-    useState<boolean>(false);
-  const [showPackageCategoryDropdown, setShowPackageCategoryDropdown] =
-    useState<boolean>(false);
-
-  // Mock data
-  const mockLocations: LocationData[] = [
-    {
-      id: "1",
-      name: "Uniben, Benin City, Nigeria",
-      coords: { latitude: 6.4025, longitude: 5.6177 },
-    },
-    {
-      id: "2",
-      name: "Uniben Ict Centre, Benin City, Nigeria",
-      coords: { latitude: 6.4035, longitude: 5.619 },
-    },
-    {
-      id: "3",
-      name: "Uniben Guest House, Benin City, Nigeria",
-      coords: { latitude: 6.4005, longitude: 5.6165 },
-    },
-    {
-      id: "4",
-      name: "Ring Road, Benin City, Nigeria",
-      coords: { latitude: 6.335, longitude: 5.62 },
-    },
-    {
-      id: "5",
-      name: "Airport Road, Benin City, Nigeria",
-      coords: { latitude: 6.317, longitude: 5.599 },
-    },
-  ];
-
-  const packageTypes = [
-    "Envelope",
-    "Box",
-    "Document",
-    "Parcel",
-    "Food",
-    "Electronics",
-  ];
-  const packageCategories = [
-    "Fragile",
-    "Standard",
-    "Perishable",
-    "Valuable",
-    "Heavy",
-  ];
-
-  useEffect(() => {
-    if (showAddressModal || showPackageModal) {
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 8,
-      }).start();
-    } else {
-      Animated.timing(slideAnim, {
-        toValue: height,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [showAddressModal, showPackageModal]);
-
-  const handleSearch = (text: string): void => {
-    setSearchQuery(text);
-    if (text.length > 0) {
-      const filtered = mockLocations.filter((location) =>
-        location.name.toLowerCase().includes(text.toLowerCase())
-      );
-      setSearchResults(filtered);
-    } else {
-      setSearchResults([]);
-    }
+  const handlePickupLocationSelected = (location: LocationSuggestion) => {
+    setState((prev) => ({
+      ...prev,
+      pickupAddress:
+        location.displayName || location.description || "Unknown Location",
+      pickupLatitude: location.latitude || null,
+      pickupLongitude: location.longitude || null,
+      pickupFullData: location,
+    }));
   };
 
-  const handleLocationSelect = (location: LocationData): void => {
-    if (addressType === "pickup") {
-      setPickupAddress(location.name);
-    } else {
-      setDropoffAddress(location.name);
+  const handlePackageDetailsSaved = (details: PackageDetails) => {
+    setState((prev) => ({
+      ...prev,
+      packageDetails: details,
+    }));
+  };
+
+  const handleEditPickup = () => {
+    setPickupModalVisible(true);
+  };
+
+  const handleEditPackage = () => {
+    setPackageModalVisible(true);
+  };
+
+  const handleFindMerchant = async () => {
+    if (!isAllComplete) {
+      Alert.alert("Missing Information", "Please complete all required fields");
+      return;
     }
-    setShowAddressModal(false);
-    setSearchQuery("");
-    setSearchResults([]);
+
+    // Save delivery info to context
+    setDeliveryInfo({
+      pickupAddress: state.pickupAddress!,
+      pickupLatitude: state.pickupLatitude!,
+      pickupLongitude: state.pickupLongitude!,
+      dropOffAddress: state.dropOffAddress!,
+      dropOffLatitude: state.dropOffLatitude!,
+      dropOffLongitude: state.dropOffLongitude!,
+      packageDetails: state.packageDetails!,
+    });
+
+    // Navigate to find merchant screen
+    router.push({
+      pathname: "/screens/find-merchant",
+      params: {
+        pickupAddress: state.pickupAddress,
+        pickupLatitude: state.pickupLatitude?.toString(),
+        pickupLongitude: state.pickupLongitude?.toString(),
+        dropOffAddress: state.dropOffAddress,
+        dropOffLatitude: state.dropOffLatitude?.toString(),
+        dropOffLongitude: state.dropOffLongitude?.toString(),
+        packageType: state.packageDetails?.type,
+        packageValue: state.packageDetails?.itemValue,
+      },
+    });
   };
 
-  const openAddressModal = (type: "pickup" | "dropoff"): void => {
-    setAddressType(type);
-    setShowAddressModal(true);
+  const handleChangeDropOff = () => {
+    router.back();
   };
 
-  const handleAddPackageDetails = (): void => {
-    if (packageType && packageCategory && itemValue) {
-      updateDeliveryDetails({
-        packageType,
-        packageSpecify: itemValue,
-        cropOfCabinet: packageCategory,
-        sourcingMode: packageType,
-      });
-      setPackageDetailsComplete(true);
-      setShowPackageModal(false);
-    }
-  };
-
-  const handleFindMerchant = (): void => {
-    if (pickupAddress && dropoffAddress && packageDetailsComplete) {
-      navigation.navigate("find-merchant");
-    }
-  };
-
-  const isFormComplete =
-    pickupAddress && dropoffAddress && packageDetailsComplete;
-
-  const renderLocationItem: ListRenderItem<LocationData> = ({ item }) => (
-    <TouchableOpacity
-      onPress={() => handleLocationSelect(item)}
-      className="py-4 border-b border-gray-100"
-      activeOpacity={0.7}
-    >
-      <Text className="text-base text-gray-800">{item.name}</Text>
-    </TouchableOpacity>
-  );
-
-  return (
-    <View className="flex-1 bg-white">
-      <StatusBar barStyle="dark-content" />
-
-      {/* Header */}
-      <View className="px-5 pt-12 pb-4 flex-row items-center border-b border-gray-100">
-        <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
-          <Icon name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text className="text-xl font-semibold">Delivery Information</Text>
+  // Address Field Component
+  const AddressField = ({
+    label,
+    address,
+    isFilled,
+    onAddPress,
+    onEditPress,
+    isPrimary = false,
+  }: {
+    label: string;
+    address: string | null;
+    isFilled: boolean;
+    onAddPress?: () => void;
+    onEditPress?: () => void;
+    isPrimary?: boolean;
+  }) => (
+    <View className="mb-6">
+      <View className="flex-row items-center justify-between mb-3">
+        <Text className="text-sm font-semibold text-gray-700">{label}</Text>
+        {isFilled ? (
+          <View className="flex-row items-center gap-2">
+            <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+            {onEditPress && (
+              <Pressable onPress={onEditPress} className="ml-2">
+                <Text className="text-emerald-600 text-sm font-semibold">
+                  Edit
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        ) : onAddPress ? (
+          <Pressable
+            onPress={onAddPress}
+            className="bg-emerald-500 rounded-full px-4 py-1"
+          >
+            <Text className="text-white text-xs font-bold">+ Add</Text>
+          </Pressable>
+        ) : null}
       </View>
 
-      {/* Content */}
-      <ScrollView
-        className="flex-1 px-5 py-6"
-        showsVerticalScrollIndicator={false}
+      <View
+        className={`border rounded-lg p-4 ${
+          isFilled
+            ? "border-emerald-200 bg-emerald-50"
+            : "border-gray-300 bg-gray-50"
+        }`}
       >
-        {/* Pick-up Address */}
-        <View className="mb-6">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-base font-medium text-gray-700">
-              Pick-up Address
-            </Text>
-            {!pickupAddress && (
-              <TouchableOpacity
-                onPress={() => openAddressModal("pickup")}
-                className="bg-green-500 px-4 py-1.5 rounded-full"
-              >
-                <Text className="text-white text-sm font-semibold">+ Add</Text>
-              </TouchableOpacity>
-            )}
-            {pickupAddress && (
-              <View className="w-6 h-6 bg-green-500 rounded-full items-center justify-center">
-                <Icon name="checkmark" size={16} color="#fff" />
-              </View>
-            )}
-          </View>
-          {pickupAddress && (
-            <View className="bg-gray-50 p-4 rounded-xl">
-              <Text className="text-sm text-gray-600">{pickupAddress}</Text>
+        <Text
+          className={`text-base ${
+            isFilled ? "text-gray-900 font-semibold" : "text-gray-500"
+          }`}
+        >
+          {address || `Enter ${label.toLowerCase()}`}
+        </Text>
+      </View>
+    </View>
+  );
+
+  // Package Field Component
+  const PackageField = ({
+    packageDetails,
+    onAddPress,
+    onEditPress,
+  }: {
+    packageDetails: PackageDetails | null;
+    onAddPress?: () => void;
+    onEditPress?: () => void;
+  }) => {
+    const getPackageTypeLabel = (type: string) => {
+      const types: { [key: string]: string } = {
+        envelope: "📮 Envelope",
+        small: "📦 Small Package",
+        medium: "📦 Medium Package",
+        large: "📦 Large Package",
+        box: "📫 Box",
+        document: "📄 Document",
+      };
+      return types[type] || type;
+    };
+
+    return (
+      <View className="mb-6">
+        <View className="flex-row items-center justify-between mb-3">
+          <Text className="text-sm font-semibold text-gray-700">
+            Package Details
+          </Text>
+          {packageDetails ? (
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+              {onEditPress && (
+                <Pressable onPress={onEditPress} className="ml-2">
+                  <Text className="text-emerald-600 text-sm font-semibold">
+                    Edit
+                  </Text>
+                </Pressable>
+              )}
             </View>
+          ) : onAddPress ? (
+            <Pressable
+              onPress={onAddPress}
+              className="bg-emerald-500 rounded-full px-4 py-1"
+            >
+              <Text className="text-white text-xs font-bold">+ Add</Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View
+          className={`border rounded-lg p-4 ${
+            packageDetails
+              ? "border-emerald-200 bg-emerald-50"
+              : "border-gray-300 bg-gray-50"
+          }`}
+        >
+          {packageDetails ? (
+            <View className="gap-2">
+              <View className="flex-row items-center gap-2">
+                <Text className="text-base text-gray-900 font-semibold">
+                  {getPackageTypeLabel(packageDetails.type)}
+                </Text>
+              </View>
+              {packageDetails.category && (
+                <Text className="text-sm text-gray-600">
+                  Category: {packageDetails.category}
+                </Text>
+              )}
+              <Text className="text-sm font-semibold text-emerald-700">
+                ₦{packageDetails.itemValue}
+              </Text>
+            </View>
+          ) : (
+            <Text className="text-gray-500">Add package details</Text>
           )}
         </View>
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-white">
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
+      >
+        {/* Header */}
+        <View className="flex-row items-center pb-4 border-b border-gray-200 mb-6">
+          <Pressable onPress={() => router.back()} className="p-2 mr-2">
+            <Ionicons name="arrow-back" size={24} color="black" />
+          </Pressable>
+          <Text className="text-xl font-bold text-gray-900">
+            Delivery Information
+          </Text>
+        </View>
+
+        {/* Pickup Address */}
+        <AddressField
+          label="Pick-up Address"
+          address={state.pickupAddress}
+          isFilled={isPickupFilled}
+          onAddPress={() => setPickupModalVisible(true)}
+          onEditPress={isPickupFilled ? handleEditPickup : undefined}
+        />
 
         {/* Drop-off Address */}
-        <View className="mb-6">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-base font-medium text-gray-700">
-              Drop-off Address
-            </Text>
-            {!dropoffAddress && (
-              <TouchableOpacity
-                onPress={() => openAddressModal("dropoff")}
-                className="bg-green-500 px-4 py-1.5 rounded-full"
-              >
-                <Text className="text-white text-sm font-semibold">+ Add</Text>
-              </TouchableOpacity>
-            )}
-            {dropoffAddress && (
-              <View className="w-6 h-6 bg-green-500 rounded-full items-center justify-center">
-                <Icon name="checkmark" size={16} color="#fff" />
-              </View>
-            )}
-          </View>
-          {dropoffAddress && (
-            <View className="bg-gray-50 p-4 rounded-xl">
-              <Text className="text-sm text-gray-600">{dropoffAddress}</Text>
-            </View>
-          )}
-        </View>
+        <AddressField
+          label="Drop-off Address"
+          address={state.dropOffAddress}
+          isFilled={isDropOffFilled}
+          onEditPress={handleChangeDropOff}
+          isPrimary
+        />
 
         {/* Package Details */}
-        <View className="mb-6">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-base font-medium text-gray-700">
-              Package Details
-            </Text>
-            {!packageDetailsComplete && (
-              <TouchableOpacity
-                onPress={() => setShowPackageModal(true)}
-                className="bg-green-500 px-4 py-1.5 rounded-full"
-              >
-                <Text className="text-white text-sm font-semibold">+ Add</Text>
-              </TouchableOpacity>
-            )}
-            {packageDetailsComplete && (
-              <View className="w-6 h-6 bg-green-500 rounded-full items-center justify-center">
-                <Icon name="checkmark" size={16} color="#fff" />
-              </View>
-            )}
-          </View>
-          {packageDetailsComplete && (
-            <View className="bg-gray-50 p-4 rounded-xl">
-              <Text className="text-sm text-gray-600">Type: {packageType}</Text>
-              <Text className="text-sm text-gray-600">
-                Category: {packageCategory}
+        <PackageField
+          packageDetails={state.packageDetails}
+          onAddPress={() => setPackageModalVisible(true)}
+          onEditPress={isPackageFilled ? handleEditPackage : undefined}
+        />
+
+        {/* Info Card */}
+        <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+          <View className="flex-row items-start gap-3">
+            <Ionicons name="information-circle" size={20} color="#3b82f6" />
+            <View className="flex-1">
+              <Text className="font-semibold text-blue-900 mb-1">
+                Complete all fields
               </Text>
-              <Text className="text-sm text-gray-600">Value: ₦{itemValue}</Text>
+              <Text className="text-blue-700 text-sm">
+                Add pickup address and package details to find available
+                merchants
+              </Text>
             </View>
-          )}
+          </View>
+        </View>
+
+        {/* Find Merchant Button */}
+        <Pressable
+          onPress={handleFindMerchant}
+          disabled={!isAllComplete}
+          className={`rounded-full py-4 items-center justify-center mb-4 ${
+            isAllComplete ? "bg-emerald-500" : "bg-gray-300"
+          }`}
+        >
+          <Text className="text-white font-bold text-lg">Find Merchant</Text>
+        </Pressable>
+
+        {/* Status Indicator */}
+        <View className="flex-row items-center justify-center gap-2">
+          <View
+            className={`w-3 h-3 rounded-full ${isPickupFilled ? "bg-emerald-500" : "bg-gray-300"}`}
+          />
+          <View
+            className={`w-3 h-3 rounded-full ${isDropOffFilled ? "bg-emerald-500" : "bg-gray-300"}`}
+          />
+          <View
+            className={`w-3 h-3 rounded-full ${isPackageFilled ? "bg-emerald-500" : "bg-gray-300"}`}
+          />
         </View>
       </ScrollView>
 
-      {/* Find Merchant Button */}
-      <View className="px-5 pb-8 pt-4 border-t border-gray-100">
-        <TouchableOpacity
-          onPress={handleFindMerchant}
-          disabled={!isFormComplete}
-          className={`py-4 rounded-full items-center ${
-            isFormComplete ? "bg-green-500" : "bg-gray-300"
-          }`}
-        >
-          <Text className="text-white text-lg font-semibold">
-            Find Merchant
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* Modals */}
+      <PickupAddressModal
+        visible={pickupModalVisible}
+        onClose={() => setPickupModalVisible(false)}
+        onLocationSelected={handlePickupLocationSelected}
+        currentPickupAddress={state.pickupAddress || undefined}
+      />
 
-      {/* Address Selection Modal */}
-      <Modal
-        visible={showAddressModal}
-        transparent={true}
-        animationType="none"
-        onRequestClose={() => setShowAddressModal(false)}
-      >
-        <View className="flex-1 bg-black/50">
-          <TouchableOpacity
-            className="flex-1"
-            activeOpacity={1}
-            onPress={() => setShowAddressModal(false)}
-          />
-
-          <Animated.View
-            style={{ transform: [{ translateY: slideAnim }] }}
-            className="bg-white rounded-t-3xl"
-          >
-            <View className="items-center py-3">
-              <View className="w-12 h-1.5 bg-gray-300 rounded-full" />
-            </View>
-
-            <View className="px-5 pb-8">
-              <Text className="text-lg font-semibold text-center mb-4">
-                Select {addressType === "pickup" ? "pick-up" : "drop-off"}{" "}
-                location
-              </Text>
-
-              <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3 mb-4">
-                <Icon name="search" size={20} color="#6b7280" />
-                <TextInput
-                  value={searchQuery}
-                  onChangeText={handleSearch}
-                  placeholder="Search location..."
-                  placeholderTextColor="#9ca3af"
-                  className="flex-1 ml-3 text-base text-gray-800"
-                  autoFocus={true}
-                />
-              </View>
-
-              <FlatList<LocationData>
-                data={searchResults.length > 0 ? searchResults : mockLocations}
-                keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={false}
-                style={{ maxHeight: 400 }}
-                keyboardShouldPersistTaps="handled"
-                renderItem={renderLocationItem}
-              />
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
-
-      {/* Package Details Modal */}
-      <Modal
-        visible={showPackageModal}
-        transparent={true}
-        animationType="none"
-        onRequestClose={() => setShowPackageModal(false)}
-      >
-        <View className="flex-1 bg-black/50">
-          <TouchableOpacity
-            className="flex-1"
-            activeOpacity={1}
-            onPress={() => setShowPackageModal(false)}
-          />
-
-          <Animated.View
-            style={{ transform: [{ translateY: slideAnim }] }}
-            className="bg-white rounded-t-3xl"
-          >
-            <View className="items-center py-3">
-              <View className="w-12 h-1.5 bg-gray-300 rounded-full" />
-            </View>
-
-            <View className="px-5 pb-8">
-              <Text className="text-lg font-semibold mb-6">Package Type</Text>
-
-              {/* Package Type Dropdown */}
-              <TouchableOpacity
-                onPress={() =>
-                  setShowPackageTypeDropdown(!showPackageTypeDropdown)
-                }
-                className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 mb-4 flex-row items-center justify-between"
-              >
-                <Text
-                  className={packageType ? "text-gray-800" : "text-gray-400"}
-                >
-                  {packageType || "Select package type"}
-                </Text>
-                <Icon name="chevron-down" size={20} color="#6b7280" />
-              </TouchableOpacity>
-
-              {showPackageTypeDropdown && (
-                <View className="bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden">
-                  {packageTypes.map((type, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => {
-                        setPackageType(type);
-                        setShowPackageTypeDropdown(false);
-                      }}
-                      className="px-4 py-3 border-b border-gray-100"
-                    >
-                      <Text className="text-gray-800">{type}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              <Text className="text-base font-semibold mb-3">
-                Package Category
-              </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  setShowPackageCategoryDropdown(!showPackageCategoryDropdown)
-                }
-                className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 mb-4 flex-row items-center justify-between"
-              >
-                <Text
-                  className={
-                    packageCategory ? "text-gray-800" : "text-gray-400"
-                  }
-                >
-                  {packageCategory || "Select category"}
-                </Text>
-                <Icon name="chevron-down" size={20} color="#6b7280" />
-              </TouchableOpacity>
-
-              {showPackageCategoryDropdown && (
-                <View className="bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden">
-                  {packageCategories.map((category, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => {
-                        setPackageCategory(category);
-                        setShowPackageCategoryDropdown(false);
-                      }}
-                      className="px-4 py-3 border-b border-gray-100"
-                    >
-                      <Text className="text-gray-800">{category}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              <Text className="text-base font-semibold mb-3">Item Value</Text>
-              <View className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 mb-6 flex-row items-center">
-                <Text className="text-gray-800 mr-2">₦</Text>
-                <TextInput
-                  value={itemValue}
-                  onChangeText={setItemValue}
-                  placeholder="Enter amount"
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="numeric"
-                  className="flex-1 text-base text-gray-800"
-                />
-              </View>
-
-              <TouchableOpacity
-                onPress={handleAddPackageDetails}
-                disabled={!packageType || !packageCategory || !itemValue}
-                className={`py-4 rounded-full items-center ${
-                  packageType && packageCategory && itemValue
-                    ? "bg-green-500"
-                    : "bg-gray-300"
-                }`}
-              >
-                <Text className="text-white text-lg font-semibold">
-                  Add details
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
-    </View>
+      <PackageDetailsModal
+        visible={packageModalVisible}
+        onClose={() => setPackageModalVisible(false)}
+        onSave={handlePackageDetailsSaved}
+        initialDetails={state.packageDetails || undefined}
+      />
+    </SafeAreaView>
   );
-};
-
-export default DeliveryInfoScreen;
+}

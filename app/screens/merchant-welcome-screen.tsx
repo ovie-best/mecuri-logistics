@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MenuScreen from "./menu-screen";
@@ -23,18 +23,20 @@ export default function MerchantWelcomeScreen() {
   const fetchUserData = async () => {
     try {
       // Replace with your actual API endpoint
-      // const response = await fetch('YOUR_API_URL/user/profile', {
-      //   headers: {
-      //     'Authorization': `Bearer ${yourAuthToken}`,
-      //   },
-      // });
-      // const data = await response.json();
+      const response = await fetch("http://10.10.30.220:8000/api/users/", {
+        method: "GET",
+        headers: {
+          //  Authorization: `Bearer ${yourAuthToken}`,
+        },
+      });
+      const data = await response.json();
+      console.log("User data", data);
 
       // Mock data - replace with actual API response
-      const data: UserData = {
+      /*const data: UserData = {
         name: "BENSON",
         isVerified: false,
-      };
+      };*/
 
       setUserData(data);
     } catch (error) {

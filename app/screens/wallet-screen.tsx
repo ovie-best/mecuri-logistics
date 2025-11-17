@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -50,15 +50,18 @@ export default function WalletScreen() {
   const fetchWalletData = async () => {
     try {
       // Replace with your actual API endpoint
-      // const response = await fetch('YOUR_API_URL/wallet', {
-      //   headers: {
-      //     'Authorization': `Bearer ${yourAuthToken}`,
-      //   },
-      // });
-      // const data = await response.json();
+      const response = await fetch("http://10.10.30.220:8000/api/wallet/", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzYzMzg5MjAyLCJpYXQiOjE3NjMzODg5MDIsImp0aSI6ImFmZWY4YmE3OGU5YjQ1NjliZjBiNDE0ZDk4M2ZlMGM3IiwidXNlcl9pZCI6IjUifQ.nQ8zFSQWLs6ilivrCxAfn0FplQmTE81R5hA8JL2zoHk`,
+          "Content-Type": "application/json",
+        },
+      });
+      console.log("Wallet response", response);
+      const data = await response.json();
 
       // Mock data for now - replace with actual API call
-      const data: WalletData = {
+      /*const data: WalletData = {
         balance: 15000.0,
         cashback: 250,
         rating: 4.5,
@@ -80,7 +83,7 @@ export default function WalletScreen() {
             status: "completed",
           },
         ],
-      };
+      };*/
 
       setWalletData(data);
     } catch (error) {

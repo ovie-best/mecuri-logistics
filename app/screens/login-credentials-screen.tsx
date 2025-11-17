@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function LoginCredentialsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+
   const userType = params.userType as "merchant" | "customer";
 
   const [email, setEmail] = useState("");
@@ -33,12 +34,26 @@ export default function LoginCredentialsScreen() {
     setLoading(true);
     try {
       // Replace with your actual API endpoint
-      // const response = await fetch('YOUR_API_URL/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password, userType }),
-      // });
-      // const data = await response.json();
+
+      const role = userType === "merchant" ? "driver" : "customer";
+
+      console.log("Attempting login with:", {
+        email,
+        password,
+        role,
+        userType,
+      });
+
+      const response = await fetch(
+        "http://10.10.30.220:8000/api/users/login/",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, role }),
+        }
+      );
+      const data = await response.json();
+      console.log("Login response data:", data);
       // Store token: await AsyncStorage.setItem('authToken', data.token);
 
       await new Promise((resolve) => setTimeout(resolve, 1500));

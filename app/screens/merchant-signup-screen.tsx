@@ -18,7 +18,7 @@ export default function MerchantSignupScreen() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phone_number, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,7 +37,7 @@ export default function MerchantSignupScreen() {
 
   const handleSignUp = async () => {
     // Validation
-    if (!email || !phoneNumber || !password || !confirmPassword) {
+    if (!email || !phone_number || !password || !confirmPassword) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
@@ -47,7 +47,7 @@ export default function MerchantSignupScreen() {
       return;
     }
 
-    if (!validatePhone(phoneNumber)) {
+    if (!validatePhone(phone_number)) {
       Alert.alert("Error", "Please enter a valid phone number");
       return;
     }
@@ -66,19 +66,23 @@ export default function MerchantSignupScreen() {
 
     try {
       // Replace with your actual API endpoint
-      // const response = await fetch('YOUR_API_URL/auth/signup', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     email,
-      //     phoneNumber,
-      //     password,
-      //     userType: 'merchant',
-      //   }),
-      // });
-      // const data = await response.json();
+      const response = await fetch(
+        "http://10.10.30.220:8000/api/users/register/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            phone_number,
+            password,
+            role: "driver",
+          }),
+        }
+      );
+      const data = await response.json();
+      console.log("Signup response data:", data);
 
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -153,7 +157,7 @@ export default function MerchantSignupScreen() {
                 className="bg-gray-100 rounded-2xl px-4 py-4 text-base"
                 placeholder="Enter your phone number"
                 placeholderTextColor="#9ca3af"
-                value={phoneNumber}
+                value={phone_number}
                 onChangeText={setPhoneNumber}
                 keyboardType="phone-pad"
               />
