@@ -13,6 +13,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, validateEmail } from "../utils/api-error-handler";
+import { saveAuthToken, saveUserData, saveUserType, UserData } from "../utils/auth-storage";
 
 export default function LoginCredentialsScreen() {
   const router = useRouter();
@@ -26,37 +28,59 @@ export default function LoginCredentialsScreen() {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
+    // Validate inputs
     if (!email || !password) {
       Alert.alert("Error", "Please enter email and password");
       return;
     }
 
+    // Validate email format
+    if (!validateEmail(email)) {
+      Alert.alert("Error", "Please enter a valid email address");
+      return;
+    }
+
     setLoading(true);
     try {
-      // Replace with your actual API endpoint
-
       const role = userType === "merchant" ? "driver" : "customer";
 
       console.log("Attempting login with:", {
         email,
-        password,
         role,
         userType,
       });
 
-      const response = await fetch(
-        "http://10.10.30.220:8000/api/users/login/",
+      // Make API request with error handling
+      const data = await apiRequest<{
+        token?: string;
+        access?: string;
+        user?: UserData;
+        [key: string]: any;
+      }>(
+        "http://10.10.30.42:8001/api/users/login/",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password, role }),
-        }
+        },
+        15000 // 15 second timeout
       );
-      const data = await response.json();
-      console.log("Login response data:", data);
-      // Store token: await AsyncStorage.setItem('authToken', data.token);
 
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      console.log("Login successful:", data);
+
+      // Store auth token (handle different token field names)
+      const token = data.token || data.access;
+      if (token) {
+        await saveAuthToken(token);
+      }
+
+      // Store user data if available
+      if (data.user) {
+        await saveUserData(data.user);
+      }
+
+      // Store user type
+      await saveUserType(userType);
 
       // Navigate based on user type
       if (userType === "merchant") {
@@ -64,9 +88,12 @@ export default function LoginCredentialsScreen() {
       } else {
         router.replace("/screens/customer-home-screen");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
-      Alert.alert("Error", "Invalid credentials. Please try again.");
+      
+      // Display user-friendly error message
+      const errorMessage = error.message || "Invalid credentials. Please try again.";
+      Alert.alert("Login Failed", errorMessage);
     } finally {
       setLoading(false);
     }

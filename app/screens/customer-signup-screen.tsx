@@ -13,10 +13,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, validateEmail, validatePassword, validatePhone } from "../utils/api-error-handler";
+import { saveAuthToken, saveUserData, saveUserType, UserData } from "../utils/auth-storage";
 
 export default function MerchantSignupScreen() {
   const router = useRouter();
 
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone_number, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
@@ -25,19 +29,11 @@ export default function MerchantSignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePhone = (phone: string) => {
-    const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
-    return phoneRegex.test(phone);
-  };
+  // Validation functions are now imported from utils
 
   const handleSignUp = async () => {
     // Validation
-    if (!email || !phone_number || !password || !confirmPassword) {
+    if (!firstName || !lastName || !email || !phone_number || !password || !confirmPassword) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
@@ -52,8 +48,9 @@ export default function MerchantSignupScreen() {
       return;
     }
 
-    if (password.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters");
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      Alert.alert("Error", passwordValidation.message || "Invalid password");
       return;
     }
 
@@ -65,8 +62,13 @@ export default function MerchantSignupScreen() {
     setLoading(true);
 
     try {
-      // Replace with your actual API endpoint
-      const response = await fetch(
+      // Make API request with error handling
+      const data = await apiRequest<{
+        token?: string;
+        access?: string;
+        user?: UserData;
+        [key: string]: any;
+      }>(
         "http://10.10.30.220:8000/api/users/register/",
         {
           method: "POST",
@@ -74,27 +76,45 @@ export default function MerchantSignupScreen() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
+            first_name: firstName,
+            last_name: lastName,
             email,
             phone_number,
             password,
             role: "customer",
           }),
-        }
+        },
+        20000 // 20 second timeout for signup
       );
-      const data = await response.json();
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log("Signup successful:", data);
+
+      // Store auth token (handle different token field names)
+      const token = data.token || data.access;
+      if (token) {
+        await saveAuthToken(token);
+      }
+
+      // Store user data if available
+      if (data.user) {
+        await saveUserData(data.user);
+      }
+
+      // Store user type
+      await saveUserType("customer");
 
       Alert.alert("Success", "Account created successfully!", [
         {
           text: "OK",
-          onPress: () => router.push("/screens/customer-home-screen"),
+          onPress: () => router.replace("/screens/customer-home-screen"),
         },
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Signup error:", error);
-      Alert.alert("Error", "Failed to create account. Please try again.");
+      
+      // Display user-friendly error message
+      const errorMessage = error.message || "Failed to create account. Please try again.";
+      Alert.alert("Signup Failed", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -129,6 +149,38 @@ export default function MerchantSignupScreen() {
             <Text className="text-3xl font-bold text-black text-center mb-8">
               Sign Up
             </Text>
+
+            {/* First Name */}
+            <View className="mb-4">
+              <Text className="text-black font-semibold mb-2">
+                First Name
+              </Text>
+              <TextInput
+                className="bg-gray-100 rounded-2xl px-4 py-4 text-base"
+                placeholder="Enter your first name"
+                placeholderTextColor="#9ca3af"
+                value={firstName}
+                onChangeText={setFirstName}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+            </View>
+
+            {/* Last Name */}
+            <View className="mb-4">
+              <Text className="text-black font-semibold mb-2">
+                Last Name
+              </Text>
+              <TextInput
+                className="bg-gray-100 rounded-2xl px-4 py-4 text-base"
+                placeholder="Enter your last name"
+                placeholderTextColor="#9ca3af"
+                value={lastName}
+                onChangeText={setLastName}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+            </View>
 
             {/* Email Address */}
             <View className="mb-4">

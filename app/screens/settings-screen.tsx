@@ -2,14 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
+import { clearAuthData } from "../utils/auth-storage";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -91,35 +92,45 @@ export default function SettingsScreen() {
           onPress: async () => {
             setLoading(true);
             try {
-              // Call logout API
-              // await fetch('YOUR_API_URL/auth/logout', {
-              //   method: 'POST',
-              //   headers: {
-              //     'Authorization': `Bearer ${yourAuthToken}`,
-              //   },
-              // });
+              // Clear auth data from local storage first
+              await clearAuthData();
+              console.log("Auth data cleared successfully");
 
-              // Simulate API call
-              await new Promise((resolve) => setTimeout(resolve, 1000));
+              // Optionally call logout API if available
+              // Note: Even if API call fails, we've already cleared local data
+              try {
+                // Uncomment and update with your actual logout endpoint
+                // await fetch('http://YOUR_API_URL/api/users/logout/', {
+                //   method: 'POST',
+                //   headers: {
+                //     'Authorization': `Bearer ${token}`,
+                //   },
+                // });
+                console.log("Logout API called (if implemented)");
+              } catch (apiError) {
+                // Log but don't block logout if API call fails
+                console.warn("Logout API call failed:", apiError);
+              }
 
-              // Clear auth data (token, user data, etc.)
-              // await AsyncStorage.clear();
-              // or your auth context logout function
-
-              // Show success and navigate to login
-              Alert.alert("Success", "Logged out successfully", [
-                {
-                  text: "OK",
-                  onPress: () => {
-                    // Navigate to login/onboarding
-                    // Adjust this path to match your auth flow
-                    router.replace("/login");
-                  },
-                },
-              ]);
+              // Navigate to login screen
+              // Use replace to prevent going back to authenticated screens
+              router.replace("/");
             } catch (error) {
               console.error("Logout error:", error);
-              Alert.alert("Error", "Failed to logout. Please try again.");
+              
+              // Even if there's an error, try to navigate to login
+              // This ensures user can always logout locally
+              Alert.alert(
+                "Logout",
+                "Logged out locally. Some data may not have been cleared from the server.",
+                [
+                  {
+                    text: "OK",
+                    onPress: () => router.replace("/"),
+                  },
+                ]
+              );
+            } finally {
               setLoading(false);
             }
           },

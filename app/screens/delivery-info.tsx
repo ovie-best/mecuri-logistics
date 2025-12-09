@@ -96,6 +96,28 @@ export default function DeliveryInfoScreen() {
       return;
     }
 
+    const response = await fetch(
+      "http://10.10.30.42:8000/api/delivery/orders/",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzYzNjYyODE2LCJpYXQiOjE3NjM1NzY0MTYsImp0aSI6ImFhNjU0MmM3OGVmNDQ5ZDlhNTA0ODg1ZWQ2NzVjMzk1IiwidXNlcl9pZCI6IjUifQ.NGQzFEh1sozk_1EKFHULwU6LuTuVoLl4d5UqZgM304c`,
+        },
+        body: JSON.stringify({
+          pickup_latitude: state.pickupLatitude,
+          pickup_longitude: state.pickupLongitude,
+          dropoff_latitude: state.dropOffLatitude,
+          dropoff_longitude: state.dropOffLongitude,
+          item_type: state.packageDetails!.type,
+          item_category: state.packageDetails!.category,
+          item_cost: state.packageDetails!.itemValue,
+        }),
+      }
+    );
+    const data = await response.json();
+    console.log("Create delivery response:", data);
+
     // Save delivery info to context
     setDeliveryInfo({
       pickupAddress: state.pickupAddress!,
@@ -107,9 +129,15 @@ export default function DeliveryInfoScreen() {
       packageDetails: state.packageDetails!,
     });
 
+    console.log("Delivery Info Saved:");
+    console.log(
+      state.pickupAddress,
+      state.pickupLatitude,
+      state.packageDetails
+    );
     // Navigate to find merchant screen
     router.push({
-      pathname: "/screens/find-merchant",
+      pathname: "/screens/find-merchant-screen",
       params: {
         pickupAddress: state.pickupAddress,
         pickupLatitude: state.pickupLatitude?.toString(),

@@ -1,3 +1,4 @@
+// Just  incase you forget, this page need removal or changing.
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -14,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDeliveryContext } from "../context/DeliveryContext";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
@@ -53,6 +55,7 @@ const PACKAGE_CATEGORIES = [
 export default function DeliveryInformationScreen() {
   const router = useRouter();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const { setDeliveryInfo } = useDeliveryContext();
 
   const [pickupAddress, setPickupAddress] = useState<Address>({
     street: "",
@@ -144,24 +147,36 @@ export default function DeliveryInformationScreen() {
     setLoading(true);
     try {
       // Create delivery request
-      const response = await fetch("YOUR_API_URL/deliveries/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          //  Authorization: `Bearer ${yourAuthToken}`,
-        },
-        body: JSON.stringify({
-          pickupAddress,
-          dropoffAddress,
-          packageDetails,
-        }),
-      });
+      const response = await fetch(
+        "http://10.10.30.172:8000/api/delivery/orders/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            //  Authorization: `Bearer ${yourAuthToken}`,
+          },
+          body: JSON.stringify({
+            pickupAddress,
+            dropoffAddress,
+            packageDetails,
+          }),
+        }
+      );
       const data = await response.json();
+      console.log("Create delivery response:", data);
+
+      // Save delivery info to context
+      setDeliveryInfo({
+        pickupAddress,
+        dropoffAddress,
+        packageDetails,
+        orderId: data.id, // it the API returns an order ID
+      });
 
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Navigate to merchant search/matching screen
-      router.push("/screens/finding-merchant-screen");
+      router.push("/screens/find-merchant-screen");
     } catch (error) {
       console.error("Create delivery error:", error);
       Alert.alert("Error", "Failed to create delivery request");

@@ -18,6 +18,22 @@ export interface DropOffLocation extends UserLocation {
   secondaryText?: string;
 }
 
+export interface PackageDetails {
+  type: string;
+  category?: string;
+  itemValue: string;
+}
+
+export interface DeliveryInfo {
+  pickupAddress: string;
+  pickupLatitude: number;
+  pickupLongitude: number;
+  dropOffAddress: string;
+  dropOffLatitude: number;
+  dropOffLongitude: number;
+  packageDetails: PackageDetails;
+}
+
 interface LocationContextType {
   // Current user location
   currentLocation: UserLocation | null;
@@ -27,6 +43,11 @@ interface LocationContextType {
   dropOffLocation: DropOffLocation | null;
   setDropOffLocation: (location: DropOffLocation) => void;
   clearDropOffLocation: () => void;
+
+  // Delivery info (NEW)
+  deliveryInfo: DeliveryInfo | null;
+  setDeliveryInfo: (info: DeliveryInfo) => void;
+  clearDeliveryInfo: () => void;
 
   // Loading states
   isLoadingCurrentLocation: boolean;
@@ -47,12 +68,23 @@ const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   );
   const [dropOffLocation, setDropOffLocation] =
     useState<DropOffLocation | null>(null);
+  const [deliveryInfo, setDeliveryInfoState] = useState<DeliveryInfo | null>(
+    null
+  );
   const [isLoadingCurrentLocation, setIsLoadingCurrentLocation] =
     useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
   const clearDropOffLocation = useCallback(() => {
     setDropOffLocation(null);
+  }, []);
+
+  const setDeliveryInfo = useCallback((info: DeliveryInfo) => {
+    setDeliveryInfoState(info);
+  }, []);
+
+  const clearDeliveryInfo = useCallback(() => {
+    setDeliveryInfoState(null);
   }, []);
 
   return (
@@ -63,6 +95,9 @@ const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         dropOffLocation,
         setDropOffLocation,
         clearDropOffLocation,
+        deliveryInfo,
+        setDeliveryInfo,
+        clearDeliveryInfo,
         isLoadingCurrentLocation,
         setIsLoadingCurrentLocation,
         locationError,

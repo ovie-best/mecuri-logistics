@@ -3,18 +3,19 @@ import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
-  SafeAreaView,
-  Text,
-  View,
+    ActivityIndicator,
+    Pressable,
+    SafeAreaView,
+    Text,
+    View,
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import nominatimService, {
-  LocationSuggestion,
+    LocationSuggestion,
 } from "../../services/nominatimService";
 import LocationSearchModal from "../components/LocationSearchModal";
 import { useLocation } from "../context/LocationContext";
+import MenuScreen from "./menu-screen";
 
 // Default coordinates for Benin City, Nigeria
 const DEFAULT_LOCATION = {
@@ -52,6 +53,7 @@ export default function HomeScreen() {
   } = useLocation();
 
   const [searchModalVisible, setSearchModalVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
 
@@ -275,8 +277,7 @@ export default function HomeScreen() {
   };
 
   const handleOpenMenu = () => {
-    console.log("Menu pressed");
-    // Implement drawer/menu navigation here
+    setMenuVisible(true);
   };
 
   if (isInitializing) {
@@ -385,6 +386,9 @@ export default function HomeScreen() {
         onClose={() => setSearchModalVisible(false)}
         onLocationSelected={handleLocationSelected}
       />
+
+      {/* Menu Sidebar */}
+      <MenuScreen visible={menuVisible} onClose={() => setMenuVisible(false)} />
     </SafeAreaView>
   );
 }

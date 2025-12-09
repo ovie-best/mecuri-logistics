@@ -15,10 +15,10 @@ import {
 // Types
 interface Transaction {
   id: string;
-  type: "credit" | "debit";
+  transaction_type: "credit" | "debit";
   amount: number;
   description: string;
-  date: string;
+  creation_date: string;
   status: "completed" | "pending" | "failed";
 }
 
@@ -50,15 +50,26 @@ export default function WalletScreen() {
   const fetchWalletData = async () => {
     try {
       // Replace with your actual API endpoint
-      const response = await fetch("http://10.10.30.220:8000/api/wallet/", {
+      const response = await fetch("http://10.10.30.172:8000/api/wallet/", {
         method: "GET",
         headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzYzMzg5MjAyLCJpYXQiOjE3NjMzODg5MDIsImp0aSI6ImFmZWY4YmE3OGU5YjQ1NjliZjBiNDE0ZDk4M2ZlMGM3IiwidXNlcl9pZCI6IjUifQ.nQ8zFSQWLs6ilivrCxAfn0FplQmTE81R5hA8JL2zoHk`,
-          "Content-Type": "application/json",
+          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzYzNTcwMjQ1LCJpYXQiOjE3NjM0ODM4NDUsImp0aSI6Ijg5YzFhOGMzZDFkOTRkZDM4NDA1YTQ5MDhkZDJiNmZlIiwidXNlcl9pZCI6IjcifQ.5Wki5Ahvye2f0qrpBnbE7cUM3gmXQgKOAKHnvC0QoUo`,
         },
       });
-      console.log("Wallet response", response);
-      const data = await response.json();
+      const apiData = await response.json();
+      console.log("Response wallet data", apiData);
+
+      const res = await fetch(
+        "http://10.10.30.172:8000/api/wallet/transactions/",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzYzNTcwMjQ1LCJpYXQiOjE3NjM0ODM4NDUsImp0aSI6Ijg5YzFhOGMzZDFkOTRkZDM4NDA1YTQ5MDhkZDJiNmZlIiwidXNlcl9pZCI6IjcifQ.5Wki5Ahvye2f0qrpBnbE7cUM3gmXQgKOAKHnvC0QoUo`,
+          },
+        }
+      );
+      const transactions = await res.json();
+      console.log("Response wallet data", transactions);
 
       // Mock data for now - replace with actual API call
       /*const data: WalletData = {
@@ -84,7 +95,12 @@ export default function WalletScreen() {
           },
         ],
       };*/
-
+      const data = {
+        balance: apiData.balance,
+        cashback: apiData.cashback,
+        rating: apiData.rating,
+        transactions: transactions,
+      };
       setWalletData(data);
     } catch (error) {
       console.error("Error fetching wallet data:", error);
@@ -331,17 +347,17 @@ export default function WalletScreen() {
                         {transaction.description}
                       </Text>
                       <Text className="text-xs text-gray-500">
-                        {formatDate(transaction.date)}
+                        {formatDate(transaction.creation_date)}
                       </Text>
                     </View>
                     <Text
                       className={`font-bold ${
-                        transaction.type === "credit"
+                        transaction.transaction_type === "credit"
                           ? "text-green-500"
                           : "text-red-500"
                       }`}
                     >
-                      {transaction.type === "credit" ? "+" : "-"}₦
+                      {transaction.transaction_type === "credit" ? "+" : "-"}₦
                       {transaction.amount.toLocaleString()}
                     </Text>
                   </View>
